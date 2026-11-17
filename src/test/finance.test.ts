@@ -25,4 +25,21 @@ describe('multi-team expense allocation primitives', () => {
     expect(() => allocateExpense({memberIds:['a','a'],method:'equal',totalMinor:100})).toThrow()
     expect(() => allocateExpense({memberIds:['a','b'],method:'percentage',totalMinor:100,percentages:{a:40,b:40}})).toThrow()
   })
+
+  it('rejects duplicate member allocations in balance calculations', () => {
+    expect(() => calculateNetBalances([
+      { memberId: 'a', shareMinor: 50 },
+      { memberId: 'a', shareMinor: 50 },
+    ], 'a', 100)).toThrow('unique')
+  })
+  it('rejects zero and unsafe-integer expense amounts', () => {
+    expect(() => allocateExpense({ memberIds: ['a'], method: 'equal', totalMinor: 0 })).toThrow()
+    expect(() => allocateExpense({ memberIds: ['a'], method: 'equal', totalMinor: Number.MAX_SAFE_INTEGER + 1 })).toThrow()
+  })
+  it('supports a zero-share participant when percentages allocate the full total elsewhere', () => {
+    expect(allocateExpense({
+      memberIds: ['a', 'b'], method: 'percentage', totalMinor: 101,
+      percentages: { a: 100, b: 0 },
+    })).toEqual([{ memberId: 'a', shareMinor: 101 }, { memberId: 'b', shareMinor: 0 }])
+  })
 })
