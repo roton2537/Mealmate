@@ -6,7 +6,7 @@ type Props={children:ReactNode}
 type Mode='signin'|'signup'|'reset'
 
 // Never let deployed password-recovery emails fall back to localhost.
-const DEPLOYED_APP_URL='https://mealmate-8tm5l5k1n-stockroom4.vercel.app'
+const DEPLOYED_APP_URL='https://mealmate-git-feature-multi-team-foundation-stockroom4.vercel.app'
 
 export default function AuthGate({children}:Props){
  const [session,setSession]=useState<Session|null>(null)
