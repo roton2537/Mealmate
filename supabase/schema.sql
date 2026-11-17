@@ -166,6 +166,8 @@ create table if not exists private.mealmate_sessions (
     references public.members (household_id, id) on delete cascade
 );
 revoke all on private.mealmate_sessions from public, anon, authenticated;
+create index if not exists mealmate_sessions_household_idx on private.mealmate_sessions (household_id);
+create index if not exists mealmate_sessions_household_member_idx on private.mealmate_sessions (household_id, member_id);
 
 insert into private.mealmate_access_codes (household_id, code_hash)
 select id, encode(sha256(convert_to('MM-7KQ4-N9PX-3W8D-6R2V', 'UTF8')), 'hex')
