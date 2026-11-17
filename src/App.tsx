@@ -1,5 +1,5 @@
 import {useMemo,useState,type FormEvent} from 'react'
-import {formatSAR,MEMBERS} from './lib/split'
+import {formatSAR,MEMBERS,splitEqually} from './lib/split'
 import {messages,type Language} from './i18n'
 type Expense={id:string;title:string;amount:number;paidBy:string;date:string}
 const STORE='mealmate-preview-expenses-v1'
@@ -7,7 +7,7 @@ function load():Expense[]{try{const raw=localStorage.getItem(STORE);return raw?J
 export default function App(){
  const [lang,setLang]=useState<Language>('en'),[expenses,setExpenses]=useState<Expense[]>(load),[title,setTitle]=useState(''),[amount,setAmount]=useState(''),[paidBy,setPaidBy]=useState(MEMBERS[0].id),[date,setDate]=useState(new Date().toISOString().slice(0,10)),[error,setError]=useState('')
  const t=messages[lang],total=expenses.reduce((s,e)=>s+e.amount,0),share=total/4
- const balances=useMemo(()=>MEMBERS.map(m=>{const paid=expenses.filter(e=>e.paidBy===m.id).reduce((s,e)=>s+e.amount,0);return {...m,paid,balance:paid-share}}),[expenses,share])
+ const balances=useMemo(()=>MEMBERS.map((m,index)=>{const paid=expenses.filter(e=>e.paidBy===m.id).reduce((s,e)=>s+e.amount,0);const owed=expenses.reduce((s,e)=>s+splitEqually(e.amount,4)[index],0);return {...m,paid,balance:paid-owed}}),[expenses])
  function add(e:FormEvent<HTMLFormElement>){e.preventDefault();const n=Number(amount);if(!title.trim()){setError(lang==='bn'?'খরচের বিবরণ লিখুন।':'Enter an expense description.');return}if(!Number.isFinite(n)||n<=0||n>10000000){setError(lang==='bn'?'সঠিক পরিমাণ লিখুন।':'Enter a valid amount greater than zero.');return}
  const next=[{id:crypto.randomUUID(),title:title.trim(),amount:Math.round(n*100)/100,paidBy,date},...expenses];setExpenses(next);try{localStorage.setItem(STORE,JSON.stringify(next))}catch{setError('Browser storage is unavailable.');return}setTitle('');setAmount('');setError('')}
  return <main className="shell" dir={lang==='bn'?'rtl':'ltr'}>
