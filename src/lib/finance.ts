@@ -70,6 +70,11 @@ export function calculateNetBalances(
   totalMinor: number,
 ): Record<string, number> {
   assertPositiveInteger(totalMinor, 'Expense amount')
+  if (allocations.length === 0) throw new Error('At least one allocation is required')
+  const allocationMemberIds = allocations.map(item => item.memberId)
+  if (allocationMemberIds.some(id => !id) || new Set(allocationMemberIds).size !== allocationMemberIds.length) {
+    throw new Error('Allocations must contain unique, non-empty member IDs')
+  }
   const allocated = allocations.reduce((sum, item) => sum + item.shareMinor, 0)
   if (allocated !== totalMinor) throw new Error('Allocations must equal the expense amount')
   if (allocations.some(item => !Number.isSafeInteger(item.shareMinor) || item.shareMinor < 0)) {
