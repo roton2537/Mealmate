@@ -4,7 +4,7 @@ import {formatSAR} from './lib/split'
 import {messages,type Language} from './i18n'
 import {supabase} from './lib/supabase'
 
-type Member={id:string;name:string;name_bn:string;household_id:string;joined_at:string;deactivated_at:string|null}
+type Member={id:string;name:string;name_bn:string;household_id:string;auth_user_id:string|null;joined_at:string;deactivated_at:string|null}
 type Expense={id:string;description:string;amount:number;paid_by_member_id:string;expense_date:string}
 
 function localDateValue(){
@@ -20,7 +20,10 @@ export default function App(){
  const [memberOptions,setMemberOptions]=useState<{id:string;name:string;name_bn:string}[]>([])
  const [currentMemberId,setCurrentMemberId]=useState('')
  const [newMemberName,setNewMemberName]=useState('')
- const [accessUnlocked,setAccessUnlocked]=useState(()=>localStorage.getItem('mealmate_access_v1')==='yes')
+ const [inviteMemberId,setInviteMemberId]=useState('')
+ const [inviteEmail,setInviteEmail]=useState('')
+ const [inviteToken,setInviteToken]=useState('')
+ const [accessUnlocked,setAccessUnlocked]=useState(true)
  const [notice,setNotice]=useState('')
  const [error,setError]=useState('')
  const [loading,setLoading]=useState(true)
@@ -38,18 +41,15 @@ export default function App(){
  useEffect(()=>{
   let active=true
   const {data:{subscription}}=supabase.auth.onAuthStateChange((_event,nextSession)=>{
-   if(active)setSession(nextSession)
+   if(active)setSession(nextSession?.user.is_anonymous?null:nextSession)
   })
   void (async()=>{
    const {data,error:sessionError}=await supabase.auth.getSession()
    if(!active)return
    if(sessionError)setError(sessionError.message)
-   if(data.session?.user.is_anonymous){setSession(data.session);setLoading(false);return}
-   if(data.session)await supabase.auth.signOut()
-   const {data:anonymous,error:anonymousError}=await supabase.auth.signInAnonymously()
-   if(!active)return
-   if(anonymousError){setError('Unable to start a private household session. Anonymous access must be enabled for MealMate.');setLoading(false);return}
-   setSession(anonymous.session);setLoading(false)
+   const current=data.session?.user.is_anonymous?null:data.session
+   if(data.session?.user.is_anonymous)await supabase.auth.signOut()
+   if(active){setSession(current);setLoading(false)}
   })()
   return ()=>{active=false;subscription.unsubscribe()}
  },[])
@@ -65,7 +65,7 @@ export default function App(){
    if(contextError){setError(contextError.message);setLoading(false);return}
    const current=context?.[0]
    if(!current){setMembers([]);setExpenses([]);setHouseholdId('');setLoading(false);return}
-   const {data:group,error:groupError}=await supabase.from('members').select('id,name,name_bn,household_id,joined_at,deactivated_at').eq('household_id',current.household_id).order('name')
+   const {data:group,error:groupError}=await supabase.from('members').select('id,name,name_bn,household_id,auth_user_id,joined_at,deactivated_at').eq('household_id',current.household_id).order('name')
    if(!active)return
    if(groupError){setError(groupError.message);setLoading(false);return}
    const {data:records,error:expenseError}=await supabase.from('expenses').select('id,description,amount,paid_by_member_id,expense_date').eq('household_id',current.household_id).order('expense_date',{ascending:false}).order('created_at',{ascending:false})
@@ -163,7 +163,7 @@ export default function App(){
   return {...member,paid,balance:paid-owed}
  }),[members,expenses])
  async function refreshMembers(){
-  const {data,error:loadError}=await supabase.from('members').select('id,name,name_bn,household_id,joined_at,deactivated_at').eq('household_id',householdId).order('name')
+  const {data,error:loadError}=await supabase.from('members').select('id,name,name_bn,household_id,auth_user_id,joined_at,deactivated_at').eq('household_id',householdId).order('name')
   if(loadError)throw loadError
   setMembers(data??[])
  }
@@ -175,6 +175,17 @@ export default function App(){
    await refreshMembers();setNewMemberName('')
    setNotice(lang==='bn'?'নতুন সদস্য যোগ হয়েছে।':'New member added. They can now unlock using the household code.')
   }catch(err){setError(err instanceof Error?err.message:'Unable to add member.')}
+  finally{setBusy(false)}
+ }
+ async function createInvitation(e:FormEvent<HTMLFormElement>){
+  e.preventDefault();setBusy(true);setError('');setNotice('');setInviteToken('')
+  try{
+   const {data,error:inviteError}=await supabase.rpc('create_mealmate_invitation',{p_member_id:inviteMemberId,p_email:inviteEmail.trim()})
+   if(inviteError)throw inviteError
+   setInviteToken(data as string)
+   setInviteEmail('')
+   setNotice(lang==='bn'?'আমন্ত্রণ কোড তৈরি হয়েছে। এটি শুধু নির্দিষ্ট সদস্যকে পাঠান।':'Invitation created. Share this one-time code only with the invited member.')
+  }catch(err){setError(err instanceof Error?err.message:'Unable to create invitation.')}
   finally{setBusy(false)}
  }
  async function deactivateMember(member:Member){
@@ -190,14 +201,14 @@ export default function App(){
  }
 
  return <main className="shell" dir={lang==='bn'?'rtl':'ltr'}>
-  <header className="topbar"><a className="brand" href="#top"><span className="brand-mark">M</span><span><strong>{t.app}</strong><small>{t.subtitle}</small></span></a><div className="top-actions"><span className="currency">SAR · ﷼</span><button className="lang-btn" onClick={()=>setLang(lang==='en'?'bn':'en')}>{t.language}</button>{accessUnlocked&&<button className="lang-btn" onClick={()=>{localStorage.removeItem('mealmate_access_v1');setAccessUnlocked(false);setNotice('')}}>{lang==='bn'?'সদস্য বদলান':'Switch member'}</button>}</div></header>
+  <header className="topbar"><a className="brand" href="#top"><span className="brand-mark">M</span><span><strong>{t.app}</strong><small>{t.subtitle}</small></span></a><div className="top-actions"><span className="currency">SAR · ﷼</span><button className="lang-btn" onClick={()=>setLang(lang==='en'?'bn':'en')}>{t.language}</button>{session&&<button className="lang-btn" onClick={()=>void supabase.auth.signOut()}>{lang==='bn'?'সাইন আউট':'Sign out'}</button>}</div></header>
   <section className="welcome" id="top"><div><p className="eyebrow">SHARED HOUSEHOLD FINANCES</p><h1>{lang==='bn'?'খাবারের খরচ, সবার জন্য পরিষ্কার হিসাব।':'A simpler way to share meal costs.'}</h1><p>{lang==='bn'?'চারজন সদস্যের সমান ভাগে দৈনন্দিন খরচের হিসাব রাখুন।':'Track shared food expenses and split costs equally among active members for each expense date.'}</p></div><div className="welcome-icon">🥘</div></section>
   {loading?<section className="panel"><p>{lang==='bn'?'নিরাপদ সেশন চালু হচ্ছে…':'Opening your private household session…'}</p></section>:!accessUnlocked?<section className="panel auth-panel"><div className="panel-heading"><div><p className="eyebrow">PRIVATE HOUSEHOLD ACCESS</p><h2>{lang==='bn'?'পরিবারের অ্যাক্সেস খুলুন':'Unlock your household'}</h2></div><span className="plus">🔒</span></div><p>{lang==='bn'?'শেয়ার করা গোপন অ্যাক্সেস কোড দিন, তারপর সদস্য তালিকা থেকে আপনার নাম নির্বাচন করুন।':'Enter the private household access code and choose your member name. This device will remember your access.'}</p><form onSubmit={unlockHousehold}>{memberOptions.length>0&&<label>{lang==='bn'?'আপনার সদস্য পরিচয়':'Your member name'}<select value={selectedMember} onChange={e=>setSelectedMember(e.target.value)}>{memberOptions.map(member=><option key={member.id} value={member.name}>{lang==='bn'?member.name_bn:member.name}</option>)}</select></label>}<label>{lang==='bn'?'পরিবারের অ্যাক্সেস কোড':'Household access code'}<input value={accessCode} onChange={e=>setAccessCode(e.target.value)} placeholder="Enter your private code" autoComplete="off" required/></label><button className="primary-btn" type="submit" disabled={busy||!accessCode.trim()||(memberOptions.length>0&&!selectedMember)}>{busy?(lang==='bn'?'যাচাই হচ্ছে…':'Verifying…'):(lang==='bn'?'অ্যাক্সেস খুলুন':'Unlock access')}<span>→</span></button></form>{notice&&<p className="balance-note" role="status">{notice}</p>}{error&&<p className="error" role="alert">{error}</p>}</section>:members.length===0?<section className="panel auth-panel"><p className="eyebrow">HOUSEHOLD ACCESS</p><h2>{lang==='bn'?'এই ডিভাইসের অ্যাক্সেস পুনরায় খুলুন':'Reconnect this device'}</h2><p>{lang==='bn'?'এই ডিভাইসের নিরাপদ সেশন নতুন করে তৈরি হয়েছে। আবার পরিবারের কোড দিয়ে প্রবেশ করুন।':'This browser session has changed. Unlock again with the household code to restore access.'}</p><button className="secondary-btn" type="button" onClick={()=>{localStorage.removeItem('mealmate_access_v1');setAccessUnlocked(false)}}>{lang==='bn'?'আবার অ্যাক্সেস খুলুন':'Unlock again'}</button>{error&&<p className="error">{error}</p>}</section>:<>
    <div className="notice"><span className="notice-dot" style={{background:'#3c9a61'}}/>{lang==='bn'?'Supabase সংযুক্ত — পরিবর্তন সব সদস্যের জন্য সংরক্ষিত হবে।':'Connected to Supabase — saved expenses are shared with authorized members.'}</div>
    <section className="stats"><article className="stat-card"><span>{t.total}</span><strong>{formatSAR(total,lang)}</strong><small>{expenses.length} {lang==='bn'?'টি এন্ট্রি':'entries'}</small></article><article className="stat-card"><span>{lang==='bn'?'সক্রিয় সদস্য':'Active members'}</span><strong>{activeMembers.length}</strong><small>{lang==='bn'?'প্রতি খরচে যোগদানের তারিখ অনুযায়ী ভাগ':'Shares depend on each expense date'}</small></article><article className="stat-card"><span>{t.count}</span><strong>{expenses.length}</strong><small>{lang==='bn'?'সব সদস্যের হিসাব':'Across all members'}</small></article></section>
    <section className="content-grid"><article className="panel" id="expense-form"><div className="panel-heading"><div><p className="eyebrow">{editingId?'EDIT RECORD':'NEW RECORD'}</p><h2>{editingId?t.editExpense:t.add}</h2></div><span className="plus">{editingId?'✎':'＋'}</span></div><form onSubmit={saveExpense}><label>{t.description}<input value={title} onChange={e=>setTitle(e.target.value)} placeholder={lang==='bn'?'যেমন: বাজার, চাল, সবজি':'e.g. Groceries, rice, vegetables'} maxLength={160} required/></label><label>{t.amount}<div className="amount-wrap"><span>﷼</span><input type="number" inputMode="decimal" min="0.01" max="10000000" step="0.01" value={amount} onChange={e=>setAmount(e.target.value)} placeholder="0.00" required/></div></label><div className="form-row"><label>{t.paidBy}<select value={paidBy} onChange={e=>setPaidBy(e.target.value)} required>{activeMembers.map(member=><option key={member.id} value={member.id}>{lang==='bn'?member.name_bn:member.name}</option>)}</select></label><label>{t.date}<input type="date" value={date} onChange={e=>setDate(e.target.value)} required/></label></div>{error&&<p className="error" role="alert">{error}</p>}<button className="primary-btn" type="submit" disabled={busy||!paidBy}>{busy?(lang==='bn'?'সংরক্ষণ হচ্ছে…':'Saving…'):(editingId?t.updateExpense:t.save)}<span>{editingId?'✓':'＋'}</span></button>{editingId&&<button className="secondary-btn" type="button" onClick={cancelEdit} disabled={busy}>{t.cancel}</button>}</form></article>
    <article className="panel"><div className="panel-heading"><div><p className="eyebrow">THE GROUP</p><h2>{t.members}</h2></div><span className="member-count">{String(members.length).padStart(2,'0')}</span></div><div className="member-list">{balances.map((member,index)=><div className="member-row" key={member.id}><span className={'avatar avatar-'+(index%4)}>{member.name.slice(0,1)}</span><span className="member-name"><strong>{lang==='bn'?member.name_bn:member.name}{member.deactivated_at?' · '+(lang==='bn'?'নিষ্ক্রিয়':'Inactive'):''}</strong><small>{t.paid}: {formatSAR(member.paid,lang)}</small></span><span className={member.balance>=0?'positive':'negative'}>{member.balance>=0?'+':'−'}{formatSAR(Math.abs(member.balance),lang)}</span></div>)}</div><p className="balance-note">{lang==='bn'?'ইতিবাচক = তারিখভিত্তিক অংশের চেয়ে বেশি পরিশোধ করেছেন।':'Positive means paid more than their date-based share. New members join expenses from their joining date.'}</p>
-   {isAdmin&&<div className="member-admin"><h3>{lang==='bn'?'সদস্য পরিচালনা':'Manage members'} ({activeMembers.length}/6)</h3><form onSubmit={addMember}><label>{lang==='bn'?'নতুন সদস্যের নাম':'New member name'}<input value={newMemberName} onChange={e=>setNewMemberName(e.target.value)} maxLength={80} minLength={2} placeholder="Full name" required disabled={activeMembers.length>=6}/></label><button className="secondary-btn" type="submit" disabled={busy||activeMembers.length>=6||!newMemberName.trim()}>{lang==='bn'?'সদস্য যোগ করুন':'Add member'}</button></form>{members.filter(m=>!m.deactivated_at&&m.id!==currentMemberId).map(m=><div className="member-row" key={m.id}><span className="member-name"><strong>{m.name}</strong><small>{lang==='bn'?'যোগদানের তারিখ':'Joined'}: {m.joined_at}</small></span><button className="text-action danger-action" type="button" onClick={()=>void deactivateMember(m)} disabled={busy||activeMembers.length<=3}>{lang==='bn'?'নিষ্ক্রিয়':'Deactivate'}</button></div>)}</div>}
+   {isAdmin&&<div className="member-admin"><h3>{lang==='bn'?'সদস্য পরিচালনা':'Manage members'} ({activeMembers.length}/6)</h3><form onSubmit={addMember}><label>{lang==='bn'?'নতুন সদস্যের নাম':'New member name'}<input value={newMemberName} onChange={e=>setNewMemberName(e.target.value)} maxLength={80} minLength={2} placeholder="Full name" required disabled={activeMembers.length>=6}/></label><button className="secondary-btn" type="submit" disabled={busy||activeMembers.length>=6||!newMemberName.trim()}>{lang==='bn'?'সদস্য যোগ করুন':'Add member'}</button></form><form onSubmit={createInvitation} className="invite-form"><h4>{lang==='bn'?'সদস্যের অ্যাকাউন্ট আমন্ত্রণ':'Invite a member account'}</h4><label>{lang==='bn'?'সদস্য নির্বাচন':'Unlinked member'}<select value={inviteMemberId} onChange={e=>setInviteMemberId(e.target.value)} required><option value="">Choose member</option>{members.filter(m=>!m.deactivated_at&&!m.auth_user_id).map(m=><option key={m.id} value={m.id}>{m.name}</option>)}</select></label><label>Email address<input type="email" value={inviteEmail} onChange={e=>setInviteEmail(e.target.value)} placeholder="member@example.com" required/></label><button className="secondary-btn" type="submit" disabled={busy||!inviteMemberId||!inviteEmail.trim()}>{lang==='bn'?'আমন্ত্রণ কোড তৈরি':'Generate invitation code'}</button></form>{inviteToken&&<div className="invite-token"><strong>{lang==='bn'?'একবারের আমন্ত্রণ কোড':'One-time invitation code'}</strong><code>{inviteToken}</code><button className="text-action" type="button" onClick={()=>void navigator.clipboard.writeText(inviteToken)}>{lang==='bn'?'কপি করুন':'Copy code'}</button><small>Send the app link and this code to the invited member privately. It expires in 7 days.</small></div>}{members.filter(m=>!m.deactivated_at&&m.id!==currentMemberId).map(m=><div className="member-row" key={m.id}><span className="member-name"><strong>{m.name}</strong><small>{lang==='bn'?'যোগদানের তারিখ':'Joined'}: {m.joined_at}{m.auth_user_id?' · Account linked':' · Not linked'}</small></span><button className="text-action danger-action" type="button" onClick={()=>void deactivateMember(m)} disabled={busy||activeMembers.length<=3}>{lang==='bn'?'নিষ্ক্রিয়':'Deactivate'}</button></div>)}</div>}
    </article></section>
    <section className="panel recent-panel"><div className="panel-heading"><div><p className="eyebrow">ACTIVITY</p><h2>{t.recent}</h2></div><span className="activity-count">{expenses.length}</span></div>{expenses.length===0?<div className="empty"><span>🧾</span><p>{t.noExpenses}</p></div>:<div className="expense-list">{expenses.map(item=>{const member=members.find(m=>m.id===item.paid_by_member_id);return <div className="expense-row" key={item.id}><span className="expense-icon">🛒</span><span className="expense-info"><strong>{item.description}</strong><small>{member?(lang==='bn'?member.name_bn:member.name):'—'} · {item.expense_date}</small></span><strong className="expense-amount">{formatSAR(Number(item.amount),lang)}</strong><span className="expense-actions"><button type="button" className="text-action" onClick={()=>startEdit(item)} disabled={busy} aria-label={t.editExpense}>{t.edit}</button><button type="button" className="text-action danger-action" onClick={()=>void deleteExpense(item)} disabled={busy} aria-label={t.delete}>{t.delete}</button></span></div>})}</div>}</section>
    {notice&&<p className="balance-note" role="status">{notice}</p>}
