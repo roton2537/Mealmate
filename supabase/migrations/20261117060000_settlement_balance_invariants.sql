@@ -34,6 +34,7 @@ begin
   if v_payer_user is null or v_recipient_user is null then raise exception 'Both parties must be active team members'; end if;
   if p_payer_member_id=p_recipient_member_id or v_payer_user=v_recipient_user then raise exception 'Settlement parties must be different users'; end if;
   if auth.uid()<>v_payer_user then raise exception 'Only the paying party can create this settlement'; end if;
+  perform 1 from public.mm_team_members where id in (p_payer_member_id,p_recipient_member_id) order by id for update;
 
   select coalesce(sum(total_minor),0) into v_payer_paid from public.mm_expenses where team_id=p_team_id and payer_member_id=p_payer_member_id and voided_at is null;
   select coalesce(sum(share_minor),0) into v_payer_share from public.mm_expense_shares where team_id=p_team_id and member_id=p_payer_member_id;
