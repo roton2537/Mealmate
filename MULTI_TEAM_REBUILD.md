@@ -1,6 +1,6 @@
-# MealMate multi-team rebuild
+# MealMate multi-team application
 
-This is the development track for MealMate's multi-team shared-expense application. The legacy production UI and legacy household tables remain available and have not been deleted or rewritten.
+This is the active development track for MealMate's multi-team shared-expense application.
 
 ## Product rules
 
@@ -14,18 +14,18 @@ This is the development track for MealMate's multi-team shared-expense applicati
 - A settlement is pending until both payer and recipient confirm. Only then does it affect balances.
 - The first Android release target is an installable PWA, avoiding native-store fees and paid infrastructure.
 
-## Database state
+## Active application and database
 
-The following migrations have been applied to the connected Supabase Free project. All new tables use the `mm_` prefix; legacy `households`, `members`, and `expenses` tables were not altered or deleted.
+- `src/main.tsx` mounts `src/MultiTeamApp.tsx`.
+- The active app reads and writes only the seven `mm_`-prefixed tables.
+- Team data is protected by RLS. Security-definer implementations live in the non-exposed `private` schema; public RPC entry points are security-invoker wrappers.
+- The old single-household UI and helper modules have been removed from active source.
+- The old household tables, private tables, and household-only RPC functions have been dropped from the connected Supabase project.
+- The seven `mm_` tables are empty after the approved database reset.
 
-- Multi-team core tables and RLS.
-- Transactional expense and settlement RPCs.
-- Reusable invitations.
-- Team role management and Realtime publication.
-- Authorization hardening: anonymous Auth identities are rejected by multi-team membership checks; security-definer helper functions are kept in the non-API `private` schema.
-- Historical membership periods and query indexes.
+## Migration history
 
-The database smoke test ran under the `authenticated` database role in a transaction and rolled back. It verified team creation, invitation redemption by multiple accounts, three-member expense allocation, two-party settlement completion, and RLS isolation (non-members saw zero team/expense rows). A separate check verified anonymous membership rejection. No test records were retained.
+The earlier household SQL migrations are retained as historical migration records. They must remain in chronological order for existing Supabase migration-ledger consistency. The final migration `20261117200000_remove_legacy_household_system.sql` removes the legacy household objects, so a fresh replay finishes with the multi-team schema only.
 
 ## Deployment boundary
 
@@ -33,10 +33,9 @@ The database smoke test ran under the `authenticated` database role in a transac
 - Vercel deployment is a preview only.
 - `main` has not been modified, and no production deployment was promoted.
 - No paid Supabase branch or paid resource was created.
-- The existing Supabase project received additive schema changes only. Legacy household data remains unchanged.
 
 ## Verification and remaining acceptance step
 
-GitHub Actions passes dependency installation, unit tests, lint, and production build. The preview's app shell, manifest, service worker, and Supabase configuration were fetched successfully.
+Earlier database smoke tests verified team creation, invitation redemption, expense allocation, two-party settlement completion, anonymous-account rejection, and RLS isolation. The new legacy-removal migration has been applied to the connected project.
 
-Before production promotion, test with two real email/password accounts on separate devices: create a team, invite and join, add an expense, verify balances, and complete a two-party settlement. Confirm email delivery and password reset redirects in the actual account environment.
+Before production promotion, perform a fresh real-user acceptance test with two email/password accounts on separate devices: create a team, invite and join, add an expense, verify balances, and complete a two-party settlement. Confirm email delivery and password reset redirects in the actual account environment.
