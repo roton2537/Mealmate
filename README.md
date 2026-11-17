@@ -29,6 +29,7 @@ MealMate is a multi-team shared-expense PWA for households, flatmates, and small
 - Production branch: `main` — not modified or promoted by this rebuild.
 - Development branch: `feature/multi-team-foundation`.
 - Supabase project: existing Free project; new tables and RPCs were added without changing legacy household tables.
+- Vercel preview (latest app build): https://mealmate-8tm5l5k1n-stockroom4.vercel.app
 - Vercel: branch preview only; no production promotion.
 - No paid Supabase branch, paid plan, or billable resource was created.
 - The browser uses only the Supabase publishable key. Never expose a service-role or secret key.
@@ -36,7 +37,7 @@ MealMate is a multi-team shared-expense PWA for households, flatmates, and small
 ## Verification
 
 - GitHub Actions: `npm ci`, `npm test`, `npm run lint`, and `npm run build` pass on the latest verified application commit.
-- Database integration smoke test ran inside a transaction and rolled back: team creation, a reusable invitation redeemed by multiple users, three-person expense allocation, two-party settlement confirmation, and anonymous-account rejection.
+- Database integration smoke test ran under the `authenticated` database role inside a transaction and rolled back: team creation, reusable invitation, three-member expense allocation, two-party settlement confirmation, and RLS isolation (a non-member saw zero team/expense rows). A separate check verified anonymous-account rejection.
 - Database smoke test left no test rows behind. The live multi-team tables currently contain no team data.
 - PWA manifest, service worker, app shell, and preview bundle return HTTP 200 and include the configured Supabase project.
 
