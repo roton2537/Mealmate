@@ -6,7 +6,6 @@ import {supabase} from './lib/supabase'
 
 type Member={id:string;name:string;name_bn:string;household_id:string}
 type Expense={id:string;description:string;amount:number;paid_by_member_id:string;expense_date:string}
-const errorText=(error:unknown)=>error instanceof Error?error.message:'Something went wrong. Please try again.'
 
 export default function App(){
  const [lang,setLang]=useState<Language>('en')
@@ -22,10 +21,11 @@ export default function App(){
  const [title,setTitle]=useState('')
  const [amount,setAmount]=useState('')
  const [paidBy,setPaidBy]=useState('')
- const [date,setDate]=useState(new Date().toISOString().slice(0,10))
+ const [date,setDate]=useState('')
  const t=messages[lang]
 
  useEffect(()=>{
+  setDate(new Date().toISOString().slice(0,10))
   let active=true
   void supabase.auth.getSession().then(({data,error:sessionError})=>{
    if(!active)return
@@ -39,12 +39,13 @@ export default function App(){
   return ()=>{active=false;subscription.unsubscribe()}
  },[])
 
+ const userId=session?.user.id
  useEffect(()=>{
   let active=true
   async function load(){
-   if(!session){setMembers([]);setExpenses([]);setHouseholdId('');setLoading(false);return}
+   if(!userId){setMembers([]);setExpenses([]);setHouseholdId('');setLoading(false);return}
    setLoading(true);setError('')
-   const {data:mine,error:memberError}=await supabase.from('members').select('id,name,name_bn,household_id').eq('auth_user_id',session.user.id).maybeSingle()
+   const {data:mine,error:memberError}=await supabase.from('members').select('id,name,name_bn,household_id').eq('auth_user_id',userId).maybeSingle()
    if(!active)return
    if(memberError){setError(memberError.message);setLoading(false);return}
    if(!mine){setMembers([]);setExpenses([]);setHouseholdId('');setLoading(false);return}
@@ -60,7 +61,7 @@ export default function App(){
   }
   void load()
   return ()=>{active=false}
- },[session?.user.id])
+ },[userId])
 
  async function signIn(e:FormEvent<HTMLFormElement>){
   e.preventDefault();setBusy(true);setError('');setNotice('')
