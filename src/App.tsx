@@ -12,21 +12,6 @@ function localDateValue(){
  return `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`
 }
 
-function readableAuthError(message:string,lang:Language){
- const lower=message.toLowerCase()
- if(lower.includes('email rate limit exceeded')||lower.includes('over_email_send_rate_limit')){
-  return lang==='bn'
-   ? 'Supabase-এর ইমেইল পাঠানোর সীমা শেষ হয়েছে। অন্তত এক ঘণ্টা অপেক্ষা করুন; বারবার লিংক চাইবেন না।'
-   : "Supabase's email sending limit has been reached. Wait at least one hour before requesting another link. Repeated requests will keep triggering this limit."
- }
- if(lower.includes('user not found')||lower.includes('signups not allowed')){
-  return lang==='bn'
-   ? 'এই ইমেইলটি এখনো অনুমোদিত সদস্য অ্যাকাউন্টের সাথে যুক্ত নয়। প্রশাসকের সাথে যোগাযোগ করুন।'
-   : 'This email is not registered as an approved MealMate member yet. Ask the administrator to set up your account.'
- }
- return message
-}
-
 export default function App(){
  const [lang,setLang]=useState<Language>('en')
  const [session,setSession]=useState<Session|null>(null)
