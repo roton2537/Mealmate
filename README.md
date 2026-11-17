@@ -1,55 +1,41 @@
 # MealMate
 
-A bilingual (English/Bangla) shared household meal-expense tracker for four members. Currency: Saudi Riyal (SAR). Every expense is divided equally between all four members. MealMate does not track meals consumed or individual consumption.
+MealMate is being rebuilt from a single-household meal-cost tracker into a general, multi-team shared-expense application.
 
-## Agreed group
-- MD ROTON MIAH
-- AJIBUR RAHMAN
-- ROBIUL ISLAM
-- HINDI
+## Product direction
 
-## Current implementation
-- React + Vite frontend connected to the MealMate Supabase project.
-- Email magic-link sign-in for existing, pre-approved member accounts; public account creation is disabled in the app.
-- Shared expense persistence in Supabase Postgres.
-- Add, edit, and delete expense records.
-- Equal-share balances, payer totals, SAR formatting, and English/Bangla UI.
-- Local-calendar date defaults and mobile-responsive expense controls.
-- Row Level Security restricts access to members whose Auth account is linked to a household member record.
-- Four household member records are seeded. Only MD ROTON MIAH is currently linked to a verified Auth account; the other accounts require verified email addresses and explicit administrator linking.
+- A personal email/password account can create multiple teams and join multiple teams.
+- Team owners can appoint admins; members have team-scoped permissions.
+- Invitations use expiring invite links/codes.
+- Every team has isolated members, expenses, balances, settlements, and audit history.
+- Expenses support equal, fixed-amount, and percentage splits across all or selected participants.
+- New members participate only from their joining date. Departing members stop participating after their leaving date; historical allocations remain.
+- Settlements affect balances only after both payer and recipient confirm receipt/payment.
+- English and Bangla interfaces; Android support through an installable Progressive Web App (PWA) is the initial target.
 
-## Supabase project
-- Project ref: `ebtxkomgbzhdujuhgtdm`
-- Region: Mumbai (`ap-south-1`)
-- URL: `https://ebtxkomgbzhdujuhgtdm.supabase.co`
-- Browser uses only the Supabase publishable key. Never add a service-role or secret key to frontend code.
+## Repository status
 
-## Development
-1. Install Node.js 22.12+ and npm.
-2. Run `npm install`.
-3. Copy `.env.example` to `.env.local` and configure `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY`.
-4. Run `npm run dev`.
-5. Run `npm test`, `npm run lint`, and `npm run build` before release.
+- `main` remains the production branch and is not modified by this rebuild.
+- `rebuild/phase-1-foundation` contains the previous household-only application.
+- `feature/multi-team-foundation` is the isolated multi-team development branch.
+- See [MULTI_TEAM_REBUILD.md](./MULTI_TEAM_REBUILD.md) for captured product rules and safety boundaries.
+- The pure financial allocation engine is in `src/lib/finance.ts`, with tests in `src/test/finance.test.ts`.
+- The draft multi-team database schema is in `supabase/migrations/20261117010000_multi_team_core.sql`.
 
-## Security and onboarding
-- Routine sign-in uses email and password; the public app does not create accounts.
-- The one-time setup link is only for establishing the initial password on an already approved account. It still depends on Supabase email delivery limits.
-- Password changes are available to authenticated members. Password recovery by email is not configured; administrator-assisted recovery is required.
-- A newly authenticated user sees no household data until their Auth user ID is explicitly linked to one of the four approved member rows.
-- Do not link accounts based only on display names; verify each email address with the member first.
-- Keep local environment files uncommitted. Never expose a Supabase service-role or secret key in frontend code.
-- Routine sign-in does not send email and therefore does not depend on Supabase SMTP. Do not disable database RLS or expose secret keys.
-- Production deployment and external invitations require explicit approval.
+## Important: not yet ready for live use
 
-## Deployment policy
-- The Vercel production branch remains `main`.
-- Development validation must use Preview deployments from `rebuild/phase-1-foundation`.
-- Do not merge this branch into `main`, promote a deployment, or create a production release without separate explicit approval.
-- Keep all infrastructure on free tiers; stop and ask before any action that could incur a charge.
+The new database migration is staged in GitHub only. It has **not** been applied to the connected Supabase project. The existing Supabase project has no free development branch; creating one required a cost confirmation, which is outside the zero-cost constraint.
 
+The old household UI and authentication gate are not yet compatible with the new multi-team schema. Do not treat the current preview as the finished multi-team product. End-to-end use requires transactional RPCs, complete RLS policies, the multi-team UI/auth flow, and isolated database validation.
 
-## Passwordless private household access
+## Zero-cost and security policy
 
-MealMate uses Supabase anonymous Auth sessions so members do not enter email addresses or passwords. On each new browser/device, a member enters the household access code and selects their member name once. The browser session is then persisted by Supabase. The shared code is a household-level credential: anyone who has it can access the shared ledger and choose a member label, so share it only with the four household members. It does not provide individual identity verification.
+- Do not create paid Supabase branches, paid plans, or other billable resources.
+- Do not apply the new schema to the existing Supabase project until an isolated zero-cost validation path is available.
+- Do not modify or deploy to `main`; no production promotion is authorized.
+- Never put Supabase service-role or secret keys in browser code. Use the publishable key with strict database RLS.
+- Keep local environment files uncommitted.
 
-Anonymous sign-ins must be enabled in Supabase Auth settings. Household membership is stored in the private schema and all household table access remains protected by RLS. No service-role key is used in the browser.
+## Development checks
+
+Install dependencies with `npm install`, then run `npm test`, `npm run lint`, and `npm run build`. These checks have not yet been run in this remote-only editing session.
