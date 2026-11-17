@@ -21,7 +21,7 @@ MealMate is a multi-team shared-expense PWA for households, flatmates, and small
 - Finance engine: `src/lib/finance.ts`; unit tests: `src/test/finance.test.ts`.
 - Database migrations: `supabase/migrations/`. These migrations were applied additively to the connected Supabase project.
 - The new schema uses `mm_`-prefixed tables. The old `households`, `members`, and `expenses` tables and their records remain intact.
-- Security helpers are stored in the non-API `private` schema; team tables have RLS enabled and writes use validated RPC functions.
+- Security helpers and SECURITY DEFINER implementations are stored in the non-API `private` schema. Public RPC entry points are SECURITY INVOKER wrappers; team tables have RLS enabled and writes use validated transactional functions.
 - PWA files: `public/manifest.webmanifest`, `public/sw.js`, and `public/meal-mate-icon.svg`.
 
 ## Environments and safety
