@@ -9,19 +9,29 @@ A bilingual (English/Bangla) shared household meal-expense tracker for four memb
 - HINDI
 
 ## Current implementation
-The first UI foundation provides expense entry, expense history, equal-share summaries, payer totals, and English/Bangla switching. The current preview stores data in this browser's local storage only. It is not yet shared between devices and must not be treated as the production ledger.
+- React + Vite frontend connected to the MealMate Supabase project.
+- Email magic-link sign-in for pre-created member accounts.
+- Shared expense persistence in Supabase Postgres.
+- Equal-share balances, payer totals, SAR formatting, and English/Bangla UI.
+- Row Level Security restricts access to members whose Auth account is linked to a household member record.
+- The four household member records are seeded. Their Auth accounts are intentionally not created or linked until each email identity is verified.
+
+## Supabase project
+- Project ref: `ebtxkomgbzhdujuhgtdm`
+- Region: Mumbai (`ap-south-1`)
+- URL: `https://ebtxkomgbzhdujuhgtdm.supabase.co`
+- Browser uses only the Supabase publishable key. Never add a service-role or secret key to frontend code.
 
 ## Development
 1. Install Node.js 22.12+ and npm.
-2. Run npm install.
-3. Copy .env.example to .env only after a Supabase project is provisioned.
-4. Run npm run dev.
-5. Run npm test, npm run lint, and npm run build before release.
+2. Run `npm install`.
+3. Optional: set `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY` in a local `.env.local` file.
+4. Run `npm run dev`.
+5. Run `npm test`, `npm run lint`, and `npm run build` before release.
 
-## Planned stages
-1. UI and equal-share calculation foundation.
-2. Supabase Auth, group/member records, expenses, and strict Row Level Security.
-3. Shared realtime updates and cross-device persistence.
-4. Automated tests, security review, and deployment preparation.
-
-Never put a Supabase service-role or secret key in frontend code. Keep .env local and uncommitted. Production access must be protected by authentication and database RLS.
+## Security and onboarding
+- Sign-in uses email magic links and does not create accounts automatically.
+- An authenticated user sees no household data until their Auth user ID is explicitly linked to one of the four approved member rows.
+- Do not link accounts based only on display names; verify each email address with the member first.
+- Keep local environment files uncommitted. Never expose a Supabase service-role or secret key in frontend code.
+- Production deployment and external invitations require explicit approval.
