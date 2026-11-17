@@ -1,4 +1,4 @@
--- MealMate initial schema blueprint. Review before applying to a Supabase project.
+-- MealMate initial schema. Applied to Supabase migration initial_mealmate_schema plus index_expense_foreign_keys.
 -- Shared household; all four authenticated members can see and manage the shared expense ledger.
 -- No meal/consumption records are created.
 
