@@ -19,14 +19,14 @@ begin
   end if;
   if v_currency !~ '^[A-Z]{3}$' then raise exception 'Currency must be a 3-letter ISO code'; end if;
 
-  insert into public.teams(name, currency, owner_user_id)
+  insert into public.mm_teams(name, currency, owner_user_id)
   values (v_name, v_currency, auth.uid())
   returning id into v_team_id;
 
-  insert into public.team_members(team_id, user_id, display_name, role)
+  insert into public.mm_team_members(team_id, user_id, display_name, role)
   values (v_team_id, auth.uid(), coalesce(nullif(trim(auth.jwt()->>'email'), ''), 'Team owner'), 'owner');
 
-  insert into public.team_audit_log(team_id, actor_user_id, entity_type, entity_id, action)
+  insert into public.mm_team_audit_log(team_id, actor_user_id, entity_type, entity_id, action)
   values (v_team_id, auth.uid(), 'team', v_team_id, 'team_created');
   return v_team_id;
 end;
@@ -56,7 +56,7 @@ declare
   v_payer_user uuid;
 begin
   if auth.uid() is null then raise exception 'Authentication required'; end if;
-  if not public.is_active_team_member(p_team_id) then raise exception 'Active team membership required'; end if;
+  if not public.mm_is_active_team_member(p_team_id) then raise exception 'Active team membership required'; end if;
   if p_total_minor is null or p_total_minor <= 0 then raise exception 'Expense amount must be positive'; end if;
   if p_split_method is null or p_split_method not in ('equal','fixed','percentage') then raise exception 'Invalid split method'; end if;
   if p_occurred_on is null or p_occurred_on > current_date then raise exception 'Invalid expense date'; end if;
@@ -67,11 +67,11 @@ begin
     raise exception 'Description must be 1 to 160 characters';
   end if;
 
-  select currency into strict v_currency from public.teams where id = p_team_id;
+  select currency into strict v_currency from public.mm_teams where id = p_team_id;
   if p_currency is null or upper(trim(p_currency)) <> v_currency then raise exception 'Expense currency must match team currency'; end if;
 
   select user_id into v_payer_user
-  from public.team_members
+  from public.mm_team_members
   where id = p_payer_member_id and team_id = p_team_id
     and joined_at::date <= p_occurred_on
     and (left_at is null or left_at::date >= p_occurred_on);
@@ -81,7 +81,7 @@ begin
   select count(*), coalesce(sum(s.share_minor),0)
     into v_share_count, v_share_sum
   from jsonb_to_recordset(p_shares) as s(member_id uuid, share_minor bigint)
-  join public.team_members m on m.id = s.member_id
+  join public.mm_team_members m on m.id = s.member_id
   where m.team_id = p_team_id
     and m.joined_at::date <= p_occurred_on
     and (m.left_at is null or m.left_at::date >= p_occurred_on)
@@ -104,17 +104,17 @@ begin
     where s.member_id = p_payer_member_id
   ) then raise exception 'Payer must be included in expense participants'; end if;
 
-  insert into public.expenses(team_id, description, category, total_minor, currency,
+  insert into public.mm_expenses(team_id, description, category, total_minor, currency,
     payer_member_id, split_method, occurred_on, created_by)
   values (p_team_id, trim(p_description), coalesce(nullif(trim(p_category),''),'other'),
     p_total_minor, v_currency, p_payer_member_id, p_split_method, p_occurred_on, auth.uid())
   returning id into v_expense_id;
 
-  insert into public.expense_shares(expense_id, team_id, member_id, share_minor)
+  insert into public.mm_expense_shares(expense_id, team_id, member_id, share_minor)
   select v_expense_id, p_team_id, s.member_id, s.share_minor
   from jsonb_to_recordset(p_shares) as s(member_id uuid, share_minor bigint);
 
-  insert into public.team_audit_log(team_id, actor_user_id, entity_type, entity_id, action, details)
+  insert into public.mm_team_audit_log(team_id, actor_user_id, entity_type, entity_id, action, details)
   values (p_team_id, auth.uid(), 'expense', v_expense_id, 'expense_created',
     jsonb_build_object('total_minor', p_total_minor, 'currency', v_currency, 'occurred_on', p_occurred_on));
   return v_expense_id;
@@ -140,10 +140,10 @@ declare
 begin
   if auth.uid() is null then raise exception 'Authentication required'; end if;
   if p_amount_minor is null or p_amount_minor <= 0 then raise exception 'Settlement amount must be positive'; end if;
-  select currency into strict v_currency from public.teams where id = p_team_id;
-  select user_id into v_payer_user from public.team_members
+  select currency into strict v_currency from public.mm_teams where id = p_team_id;
+  select user_id into v_payer_user from public.mm_team_members
     where id = p_payer_member_id and team_id = p_team_id and left_at is null;
-  select user_id into v_recipient_user from public.team_members
+  select user_id into v_recipient_user from public.mm_team_members
     where id = p_recipient_member_id and team_id = p_team_id and left_at is null;
   if v_payer_user is null or v_recipient_user is null then raise exception 'Both parties must be active team members'; end if;
   if p_payer_member_id = p_recipient_member_id or v_payer_user = v_recipient_user then
@@ -151,12 +151,12 @@ begin
   end if;
   if auth.uid() <> v_payer_user then raise exception 'Only the paying party can create this settlement'; end if;
 
-  insert into public.settlements(team_id, payer_member_id, recipient_member_id, amount_minor,
+  insert into public.mm_settlements(team_id, payer_member_id, recipient_member_id, amount_minor,
     currency, created_by)
   values (p_team_id, p_payer_member_id, p_recipient_member_id, p_amount_minor, v_currency, auth.uid())
   returning id into v_id;
 
-  insert into public.team_audit_log(team_id, actor_user_id, entity_type, entity_id, action)
+  insert into public.mm_team_audit_log(team_id, actor_user_id, entity_type, entity_id, action)
   values (p_team_id, auth.uid(), 'settlement', v_id, 'settlement_created');
   return v_id;
 end;
@@ -169,41 +169,40 @@ security definer
 set search_path = public, auth, pg_temp
 as $$
 declare
-  v_row public.settlements%rowtype;
+  v_row public.mm_settlements%rowtype;
   v_member_id uuid;
+  v_payer_confirmed timestamptz;
+  v_recipient_confirmed timestamptz;
   v_new_status text;
 begin
   if auth.uid() is null then raise exception 'Authentication required'; end if;
-  select * into strict v_row from public.settlements where id = p_settlement_id for update;
+  select * into strict v_row from public.mm_settlements where id = p_settlement_id for update;
   if v_row.status <> 'pending' then raise exception 'Only pending settlements can be confirmed'; end if;
 
-  select id into v_member_id from public.team_members
+  select id into v_member_id from public.mm_team_members
     where team_id = v_row.team_id and user_id = auth.uid() and left_at is null;
   if v_member_id is null then raise exception 'Active team membership required'; end if;
 
+  v_payer_confirmed := v_row.payer_confirmed_at;
+  v_recipient_confirmed := v_row.recipient_confirmed_at;
   if v_member_id = v_row.payer_member_id then
-    update public.settlements set payer_confirmed_at = coalesce(payer_confirmed_at, now())
-    where id = p_settlement_id;
+    v_payer_confirmed := coalesce(v_payer_confirmed, now());
   elsif v_member_id = v_row.recipient_member_id then
-    update public.settlements set recipient_confirmed_at = coalesce(recipient_confirmed_at, now())
-    where id = p_settlement_id;
+    v_recipient_confirmed := coalesce(v_recipient_confirmed, now());
   else
     raise exception 'Only settlement parties can confirm';
   end if;
 
-  update public.settlements
-    set status = case
-      when payer_confirmed_at is not null and recipient_confirmed_at is not null then 'completed'
-      else 'pending'
-    end,
-    completed_at = case
-      when payer_confirmed_at is not null and recipient_confirmed_at is not null then coalesce(completed_at, now())
-      else null
-    end
-  where id = p_settlement_id
-  returning status into v_new_status;
+  v_new_status := case when v_payer_confirmed is not null and v_recipient_confirmed is not null
+    then 'completed' else 'pending' end;
+  update public.mm_settlements
+    set payer_confirmed_at = v_payer_confirmed,
+        recipient_confirmed_at = v_recipient_confirmed,
+        status = v_new_status,
+        completed_at = case when v_new_status = 'completed' then coalesce(completed_at, now()) else null end
+    where id = p_settlement_id;
 
-  insert into public.team_audit_log(team_id, actor_user_id, entity_type, entity_id, action)
+  insert into public.mm_team_audit_log(team_id, actor_user_id, entity_type, entity_id, action)
   values (v_row.team_id, auth.uid(), 'settlement', p_settlement_id,
     case when v_new_status = 'completed' then 'settlement_completed' else 'settlement_confirmed_by_one_party' end);
   return v_new_status;
