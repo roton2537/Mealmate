@@ -28,7 +28,7 @@ MealMate is a multi-team shared-expense Progressive Web App (PWA) for households
 
 The old single-household frontend, auth gate, helper modules, and stale schema snapshot have been removed from the active source tree. The old household tables, private tables, and household-only RPC functions have been dropped from the connected Supabase project.
 
-Older SQL migration files remain in `supabase/migrations/` as historical migration history so existing project migration records remain consistent. The final migration, `20261117200000_remove_legacy_household_system.sql`, removes the legacy objects after those historical migrations on a fresh setup. Do not remove or reorder historical migrations without reconciling the Supabase migration ledger.
+Older SQL migration files remain in `supabase/migrations/` as historical migration history so existing project migration records remain consistent. The final migration, `20261117162421_remove_legacy_household_system.sql`, removes the legacy objects after those historical migrations on a fresh setup. Do not remove or reorder historical migrations without reconciling the Supabase migration ledger.
 
 ## Environments and safety
 
@@ -40,7 +40,8 @@ Older SQL migration files remain in `supabase/migrations/` as historical migrati
 
 ## Verification
 
-- Earlier GitHub Actions runs passed dependency installation, unit tests, lint, and production build before the legacy-source cleanup.
+- GitHub Actions passed dependency installation, unit tests, lint, and production build after the source cleanup.
 - Database integration smoke tests previously verified team creation, invitations, expense allocation, two-party settlement confirmation, and RLS isolation.
 - The live database was reset: the seven `mm_` tables are empty and ready for fresh acceptance testing.
+- The current preview app shell responds with HTTP 200 and its compiled JavaScript contains the multi-team RPCs, with no legacy household RPC references.
 - A new real-user acceptance test is still required: sign in, create a team, invite a second account, record an expense, verify balances, and complete a two-party settlement.
