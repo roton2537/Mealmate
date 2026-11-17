@@ -10,11 +10,13 @@ A bilingual (English/Bangla) shared household meal-expense tracker for four memb
 
 ## Current implementation
 - React + Vite frontend connected to the MealMate Supabase project.
-- Email magic-link sign-in for pre-created member accounts.
+- Email magic-link sign-in for existing, pre-approved member accounts; public account creation is disabled in the app.
 - Shared expense persistence in Supabase Postgres.
+- Add, edit, and delete expense records.
 - Equal-share balances, payer totals, SAR formatting, and English/Bangla UI.
+- Local-calendar date defaults and mobile-responsive expense controls.
 - Row Level Security restricts access to members whose Auth account is linked to a household member record.
-- The four household member records are seeded. Their Auth accounts are intentionally not created or linked until each email identity is verified.
+- Four household member records are seeded. Only MD ROTON MIAH is currently linked to a verified Auth account; the other accounts require verified email addresses and explicit administrator linking.
 
 ## Supabase project
 - Project ref: `ebtxkomgbzhdujuhgtdm`
@@ -25,15 +27,16 @@ A bilingual (English/Bangla) shared household meal-expense tracker for four memb
 ## Development
 1. Install Node.js 22.12+ and npm.
 2. Run `npm install`.
-3. Optional: set `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY` in a local `.env.local` file.
+3. Copy `.env.example` to `.env.local` and configure `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY`.
 4. Run `npm run dev`.
 5. Run `npm test`, `npm run lint`, and `npm run build` before release.
 
 ## Security and onboarding
-- Sign-in uses email magic links and permits account creation after email verification.
+- Sign-in uses email magic links and does not create new accounts from the public app.
 - A newly authenticated user sees no household data until their Auth user ID is explicitly linked to one of the four approved member rows.
 - Do not link accounts based only on display names; verify each email address with the member first.
 - Keep local environment files uncommitted. Never expose a Supabase service-role or secret key in frontend code.
+- Supabase's built-in email sender has a low sending limit. Configure a genuinely free custom SMTP provider before inviting all members; do not disable email confirmation or pay for a service without approval.
 - Production deployment and external invitations require explicit approval.
 
 ## Deployment policy
