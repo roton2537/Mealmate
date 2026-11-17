@@ -1,7 +1,7 @@
 name: MealMate CI
 on:
   push:
-    branches: ["main", "rebuild/**"]
+    branches: ["main", "rebuild/**", "feature/**"]
   pull_request:
     branches: ["main"]
 jobs:
