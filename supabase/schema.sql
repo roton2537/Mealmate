@@ -240,3 +240,13 @@ language sql stable security invoker set search_path = '' as $$
 $$;
 revoke all on function public.get_mealmate_session_context() from public, anon;
 grant execute on function public.get_mealmate_session_context() to authenticated;
+
+-- Flexible membership additions (migration flexible_dated_household_membership).
+alter table public.members add column if not exists joined_at date;
+alter table public.members add column if not exists deactivated_at date;
+-- Existing members participate from the earliest recorded expense; new members start on join date.
+update public.members m set joined_at=coalesce((select min(e.expense_date) from public.expenses e where e.household_id=m.household_id),current_date) where joined_at is null;
+alter table public.members alter column joined_at set default current_date;
+alter table public.members alter column joined_at set not null;
+
+-- Admin-only membership management RPCs are defined in the corresponding migrations.
