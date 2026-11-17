@@ -57,17 +57,18 @@ export default function App(){
   async function load(){
    if(!userId||!accessUnlocked){setMembers([]);setExpenses([]);setHouseholdId('');setLoading(false);return}
    setLoading(true);setError('')
-   const {data:mine,error:memberError}=await supabase.from('members').select('id,name,name_bn,household_id').eq('auth_user_id',userId).maybeSingle()
+   const {data:context,error:contextError}=await supabase.rpc('get_mealmate_session_context')
    if(!active)return
-   if(memberError){setError(memberError.message);setLoading(false);return}
-   if(!mine){setMembers([]);setExpenses([]);setHouseholdId('');setLoading(false);return}
-   const {data:group,error:groupError}=await supabase.from('members').select('id,name,name_bn,household_id').eq('household_id',mine.household_id).order('name')
+   if(contextError){setError(contextError.message);setLoading(false);return}
+   const current=context?.[0]
+   if(!current){setMembers([]);setExpenses([]);setHouseholdId('');setLoading(false);return}
+   const {data:group,error:groupError}=await supabase.from('members').select('id,name,name_bn,household_id').eq('household_id',current.household_id).order('name')
    if(!active)return
    if(groupError){setError(groupError.message);setLoading(false);return}
-   const {data:records,error:expenseError}=await supabase.from('expenses').select('id,description,amount,paid_by_member_id,expense_date').eq('household_id',mine.household_id).order('expense_date',{ascending:false}).order('created_at',{ascending:false})
+   const {data:records,error:expenseError}=await supabase.from('expenses').select('id,description,amount,paid_by_member_id,expense_date').eq('household_id',current.household_id).order('expense_date',{ascending:false}).order('created_at',{ascending:false})
    if(!active)return
    if(expenseError){setError(expenseError.message);setLoading(false);return}
-   setHouseholdId(mine.household_id);setMembers(group??[]);setExpenses((records??[]) as Expense[])
+   setHouseholdId(current.household_id);setMembers(group??[]);setExpenses((records??[]) as Expense[])
    setPaidBy(current=>(group??[]).some(m=>m.id===current)?current:(group??[])[0]?.id??'')
    setLoading(false)
   }
