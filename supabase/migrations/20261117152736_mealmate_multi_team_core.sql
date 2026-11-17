@@ -1,5 +1,5 @@
 -- MealMate multi-team schema draft.
--- IMPORTANT: staged on the GitHub development branch only; NOT applied to Supabase.
+-- Applied to the current Supabase project as an additive multi-team schema migration.
 begin;
 
 create extension if not exists pgcrypto;
