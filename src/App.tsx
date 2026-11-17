@@ -1,6 +1,6 @@
 import {useEffect,useMemo,useState,type FormEvent} from 'react'
 import type {Session} from '@supabase/supabase-js'
-import {formatSAR,splitEqually} from './lib/split'
+import {formatSAR} from './lib/split'
 import {messages,type Language} from './i18n'
 import {supabase} from './lib/supabase'
 
