@@ -46,3 +46,10 @@ A bilingual (English/Bangla) shared household meal-expense tracker for four memb
 - Development validation must use Preview deployments from `rebuild/phase-1-foundation`.
 - Do not merge this branch into `main`, promote a deployment, or create a production release without separate explicit approval.
 - Keep all infrastructure on free tiers; stop and ask before any action that could incur a charge.
+
+
+## Passwordless private household access
+
+MealMate uses Supabase anonymous Auth sessions so members do not enter email addresses or passwords. On each new browser/device, a member enters the household access code and selects their member name once. The browser session is then persisted by Supabase. The shared code is a household-level credential: anyone who has it can access the shared ledger and choose a member label, so share it only with the four household members. It does not provide individual identity verification.
+
+Anonymous sign-ins must be enabled in Supabase Auth settings. Household membership is stored in the private schema and all household table access remains protected by RLS. No service-role key is used in the browser.
