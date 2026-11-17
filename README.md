@@ -32,7 +32,8 @@ A bilingual (English/Bangla) shared household meal-expense tracker for four memb
 5. Run `npm test`, `npm run lint`, and `npm run build` before release.
 
 ## Security and onboarding
-- Sign-in uses email and password; the public app does not create accounts.
+- Routine sign-in uses email and password; the public app does not create accounts.
+- The one-time setup link is only for establishing the initial password on an already approved account. It still depends on Supabase email delivery limits.
 - Password changes are available to authenticated members. Password recovery by email is not configured; administrator-assisted recovery is required.
 - A newly authenticated user sees no household data until their Auth user ID is explicitly linked to one of the four approved member rows.
 - Do not link accounts based only on display names; verify each email address with the member first.
