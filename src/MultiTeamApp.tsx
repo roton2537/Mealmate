@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
 import type { Session } from '@supabase/supabase-js'
 import { supabase } from './lib/supabase'
 import { allocateExpense, type SplitMethod } from './lib/finance'
@@ -15,6 +15,7 @@ const msg=(e:unknown)=>e instanceof Error?e.message:'Something went wrong. Pleas
 
 export default function MultiTeamApp(){
  const [session,setSession]=useState<Session|null>(null),[authReady,setAuthReady]=useState(false)
+ const authInitRef=useRef<Promise<Session|null>|null>(null)
  const [displayName,setDisplayName]=useState('')
  const [teams,setTeams]=useState<Team[]>([]),[teamId,setTeamId]=useState(()=>window.localStorage.getItem('mealmate-team')??''),[members,setMembers]=useState<Member[]>([]),[expenses,setExpenses]=useState<Expense[]>([]),[shares,setShares]=useState<Share[]>([]),[settlements,setSettlements]=useState<Settlement[]>([]),[joinRequests,setJoinRequests]=useState<JoinRequest[]>([]),[myPendingRequests,setMyPendingRequests]=useState<JoinRequest[]>([])
  const [busy,setBusy]=useState(false),[loading,setLoading]=useState(false),[error,setError]=useState(''),[notice,setNotice]=useState('')
@@ -25,7 +26,7 @@ export default function MultiTeamApp(){
  const activeMembers=members.filter(m=>!m.left_at)
  const t=(en:string,bn:string)=>lang==='bn'?bn:en
 
- useEffect(()=>{let alive=true;const {data:{subscription}}=supabase.auth.onAuthStateChange((_event,s)=>{if(alive)setSession(s)});void (async()=>{const {data,error:e}=await supabase.auth.getSession();if(!alive)return;if(e){setError(e.message);setAuthReady(true);return}if(data.session){setSession(data.session);setAuthReady(true);return}const {data:created,error:createError}=await supabase.auth.signInAnonymously();if(!alive)return;if(createError){setError('Could not create this device session: '+createError.message);setAuthReady(true);return}setSession(created.session);setAuthReady(true)})();return()=>{alive=false;subscription.unsubscribe()}},[])
+ useEffect(()=>{let alive=true;const {data:{subscription}}=supabase.auth.onAuthStateChange((_event,s)=>{if(alive)setSession(s)});if(!authInitRef.current){authInitRef.current=(async()=>{const {data,error:e}=await supabase.auth.getSession();if(e)throw e;if(data.session)return data.session;const {data:created,error:createError}=await supabase.auth.signInAnonymously();if(createError)throw createError;return created.session})()}void authInitRef.current.then(s=>{if(alive){setSession(s);setAuthReady(true)}}).catch(e=>{if(alive){setError('Could not create this device session: '+msg(e));setAuthReady(true)}});return()=>{alive=false;subscription.unsubscribe()}},[])
  const refresh=useCallback(async()=>{
   if(!session?.user.id){setTeams([]);setMembers([]);setExpenses([]);setShares([]);setSettlements([]);setJoinRequests([]);return}
   setLoading(true);setError('')
