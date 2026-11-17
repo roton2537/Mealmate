@@ -25,7 +25,7 @@ The following migrations have been applied to the connected Supabase Free projec
 - Authorization hardening: anonymous Auth identities are rejected by multi-team membership checks; security-definer helper functions are kept in the non-API `private` schema.
 - Historical membership periods and query indexes.
 
-The database smoke test was executed in a transaction and rolled back. It verified team creation, invitation redemption by multiple accounts, three-member expense allocation, two-party settlement completion, and rejection of anonymous membership. No test records were retained.
+The database smoke test ran under the `authenticated` database role in a transaction and rolled back. It verified team creation, invitation redemption by multiple accounts, three-member expense allocation, two-party settlement completion, and RLS isolation (non-members saw zero team/expense rows). A separate check verified anonymous membership rejection. No test records were retained.
 
 ## Deployment boundary
 
