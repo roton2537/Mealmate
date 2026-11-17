@@ -5,7 +5,7 @@ import { allocateExpense, calculateNetBalances, type SplitMethod } from './lib/f
 
 type Team = { id:string; name:string; currency:string; owner_user_id:string; created_at:string }
 type Member = { id:string; team_id:string; user_id:string; display_name:string; role:'owner'|'admin'|'member'; joined_at:string; left_at:string|null }
-type Expense = { id:string; team_id:string; description:string; category:string; total_minor:number; currency:string; payer_member_id:string; split_method:SplitMethod; occurred_on:string; created_at:string }
+type Expense = { id:string; team_id:string; description:string; category:string; total_minor:number; currency:string; payer_member_id:string; split_method:SplitMethod; occurred_on:string; created_at:string; voided_at:string|null }
 type Share = { id:string; expense_id:string; team_id:string; member_id:string; share_minor:number }
 type Settlement = { id:string; team_id:string; payer_member_id:string; recipient_member_id:string; amount_minor:number; currency:string; status:string; payer_confirmed_at:string|null; recipient_confirmed_at:string|null; created_at:string }
 const today=()=>{const d=new Date();return [d.getFullYear(),String(d.getMonth()+1).padStart(2,'0'),String(d.getDate()).padStart(2,'0')].join('-')}
