@@ -35,3 +35,9 @@ A bilingual (English/Bangla) shared household meal-expense tracker for four memb
 - Do not link accounts based only on display names; verify each email address with the member first.
 - Keep local environment files uncommitted. Never expose a Supabase service-role or secret key in frontend code.
 - Production deployment and external invitations require explicit approval.
+
+## Deployment policy
+- The Vercel production branch remains `main`.
+- Development validation must use Preview deployments from `rebuild/phase-1-foundation`.
+- Do not merge this branch into `main`, promote a deployment, or create a production release without separate explicit approval.
+- Keep all infrastructure on free tiers; stop and ask before any action that could incur a charge.
