@@ -58,9 +58,9 @@ begin
   if auth.uid() is null then raise exception 'Authentication required'; end if;
   if not public.is_active_team_member(p_team_id) then raise exception 'Active team membership required'; end if;
   if p_total_minor is null or p_total_minor <= 0 then raise exception 'Expense amount must be positive'; end if;
-  if p_split_method not in ('equal','fixed','percentage') then raise exception 'Invalid split method'; end if;
+  if p_split_method is null or p_split_method not in ('equal','fixed','percentage') then raise exception 'Invalid split method'; end if;
   if p_occurred_on is null or p_occurred_on > current_date then raise exception 'Invalid expense date'; end if;
-  if jsonb_typeof(p_shares) <> 'array' or jsonb_array_length(p_shares) = 0 then
+  if p_shares is null or jsonb_typeof(p_shares) is distinct from 'array' or jsonb_array_length(p_shares) = 0 then
     raise exception 'At least one share is required';
   end if;
   if char_length(trim(coalesce(p_description,''))) not between 1 and 160 then
@@ -68,7 +68,7 @@ begin
   end if;
 
   select currency into strict v_currency from public.teams where id = p_team_id;
-  if upper(trim(p_currency)) <> v_currency then raise exception 'Expense currency must match team currency'; end if;
+  if p_currency is null or upper(trim(p_currency)) <> v_currency then raise exception 'Expense currency must match team currency'; end if;
 
   select user_id into v_payer_user
   from public.team_members
