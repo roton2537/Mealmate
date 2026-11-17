@@ -1,8 +1,13 @@
 import { createClient } from '@supabase/supabase-js'
 
-// Publishable keys are designed for browser use. Database access is protected by Auth + RLS.
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://ebtxkomgbzhdujuhgtdm.supabase.co'
-const supabasePublishableKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || 'sb_publishable_vT_MaQncVz9Q3QpDmcNIGQ_N_RwhLx9'
+// Only the public publishable key belongs in browser code.
+// Authentication and Row Level Security protect all household data.
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
+const supabasePublishableKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY
+
+if (!supabaseUrl || !supabasePublishableKey) {
+  throw new Error('MealMate is missing VITE_SUPABASE_URL or VITE_SUPABASE_PUBLISHABLE_KEY. Configure both environment variables before starting the app.')
+}
 
 export const supabase = createClient(supabaseUrl, supabasePublishableKey, {
   auth: {
