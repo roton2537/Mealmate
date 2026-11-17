@@ -1,5 +1,5 @@
 -- MealMate transactional write RPCs.
--- Staged only on feature/multi-team-foundation. NOT applied to Supabase.
+-- Applied to the current Supabase project; no legacy household tables are modified.
 begin;
 
 create or replace function public.create_team(p_name text, p_currency text default 'SAR')
