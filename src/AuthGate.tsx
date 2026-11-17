@@ -5,6 +5,9 @@ import {supabase} from './lib/supabase'
 type Props={children:ReactNode}
 type Mode='signin'|'signup'|'reset'
 
+// Never let deployed password-recovery emails fall back to localhost.
+const DEPLOYED_APP_URL='https://mealmate-8tm5l5k1n-stockroom4.vercel.app'
+
 export default function AuthGate({children}:Props){
  const [session,setSession]=useState<Session|null>(null)
  const [ready,setReady]=useState(false)
@@ -53,6 +56,7 @@ export default function AuthGate({children}:Props){
 
  async function submitAuth(e:FormEvent<HTMLFormElement>){
   e.preventDefault();setBusy(true);setError('');setMessage('')
+  const redirectUrl=import.meta.env.DEV?window.location.origin:DEPLOYED_APP_URL
   try{
    const cleanEmail=email.trim().toLowerCase()
    if(mode==='signin'){
@@ -61,12 +65,12 @@ export default function AuthGate({children}:Props){
     setSession(data.session)
    }else if(mode==='signup'){
     if(password.length<10)throw new Error('Use a password with at least 10 characters.')
-    const {data,error:authError}=await supabase.auth.signUp({email:cleanEmail,password,options:{emailRedirectTo:window.location.origin}})
+    const {data,error:authError}=await supabase.auth.signUp({email:cleanEmail,password,options:{emailRedirectTo:redirectUrl}})
     if(authError)throw authError
     if(data.session){setSession(data.session);setMessage('Account created. Continue with your household invitation.')}
     else setMessage('Account created. Check your email, confirm your address, then sign in.')
    }else{
-    const {error:authError}=await supabase.auth.resetPasswordForEmail(cleanEmail,{redirectTo:window.location.origin})
+    const {error:authError}=await supabase.auth.resetPasswordForEmail(cleanEmail,{redirectTo:redirectUrl})
     if(authError)throw authError
     setMessage('If an account exists for this email, a password reset link has been sent.')
    }
