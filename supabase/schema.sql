@@ -43,6 +43,8 @@ create index if not exists expenses_household_date_idx
   on public.expenses (household_id, expense_date desc, created_at desc);
 create index if not exists members_auth_user_idx
   on public.members (auth_user_id) where auth_user_id is not null;
+create index if not exists expenses_created_by_idx on public.expenses (created_by);
+create index if not exists expenses_household_payer_idx on public.expenses (household_id, paid_by_member_id);
 
 -- SECURITY DEFINER is limited to this non-exposed schema and this membership lookup.
 -- It avoids recursive RLS when a member policy needs to verify group membership.
