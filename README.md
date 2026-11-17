@@ -30,8 +30,8 @@ A bilingual (English/Bangla) shared household meal-expense tracker for four memb
 5. Run `npm test`, `npm run lint`, and `npm run build` before release.
 
 ## Security and onboarding
-- Sign-in uses email magic links and does not create accounts automatically.
-- An authenticated user sees no household data until their Auth user ID is explicitly linked to one of the four approved member rows.
+- Sign-in uses email magic links and permits account creation after email verification.
+- A newly authenticated user sees no household data until their Auth user ID is explicitly linked to one of the four approved member rows.
 - Do not link accounts based only on display names; verify each email address with the member first.
 - Keep local environment files uncommitted. Never expose a Supabase service-role or secret key in frontend code.
 - Production deployment and external invitations require explicit approval.
