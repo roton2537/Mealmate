@@ -1,24 +1,42 @@
 # MealMate multi-team rebuild
 
-This branch is the isolated development track for the general shared-expense product. The existing production branch and current Supabase schema are not modified.
+This is the development track for MealMate's multi-team shared-expense application. The legacy production UI and legacy household tables remain available and have not been deleted or rewritten.
 
-## Product rules captured in this rebuild
+## Product rules
 
-- One email/password identity can own or join multiple teams.
-- Team data is isolated; authorization is enforced by Postgres Row Level Security, not by frontend filters.
-- Expenses are paid by a member and allocated to all or selected participants.
-- Equal, fixed-amount, and percentage allocations are supported by the financial domain layer.
-- Monetary calculations use integer minor units (halalas for SAR); persisted allocations are immutable snapshots.
-- New members participate only from their effective joining date. Leaving a team ends future participation but preserves past ledger records.
-- A settlement changes balances only after both payer and recipient confirm it.
-- Team owner/admin/member roles are scoped to a team.
+- One email/password account can create and join multiple teams.
+- Team data is isolated with Postgres Row Level Security.
+- Owner, admin, and member roles are scoped to each team.
+- Invitations are tokenized, expire, and may be reused by multiple people; an invitation can optionally be restricted to one email address.
+- Expenses can be split equally, by fixed amount, or by percentage, among all active members by default or a selected subset.
+- Money is stored as integer minor units (halalas for SAR).
+- Expense shares are immutable snapshots. New members participate from their joining date; leaving a team preserves historical allocations.
+- A settlement is pending until both payer and recipient confirm. Only then does it affect balances.
+- The first Android release target is an installable PWA, avoiding native-store fees and paid infrastructure.
 
-## Current safety boundary
+## Database state
 
-The migration in this branch is a draft and is NOT applied to the connected Supabase project. The Supabase project currently has no free development branch; creating one requested a cost confirmation. Do not apply this schema to the existing project until an isolated, zero-cost validation route is available.
+The following migrations have been applied to the connected Supabase Free project. All new tables use the `mm_` prefix; legacy `households`, `members`, and `expenses` tables were not altered or deleted.
 
-No paid Supabase resources, paid Vercel features, production deployments, or production database changes are authorized by this work.
+- Multi-team core tables and RLS.
+- Transactional expense and settlement RPCs.
+- Reusable invitations.
+- Team role management and Realtime publication.
+- Authorization hardening: anonymous Auth identities are rejected by multi-team membership checks; security-definer helper functions are kept in the non-API `private` schema.
+- Historical membership periods and query indexes.
 
-## Development checks
+The database smoke test was executed in a transaction and rolled back. It verified team creation, invitation redemption by multiple accounts, three-member expense allocation, two-party settlement completion, and rejection of anonymous membership. No test records were retained.
 
-Run `npm test`, `npm run lint`, and `npm run build` after installing dependencies. The finance module is pure TypeScript and can be tested without a Supabase connection.
+## Deployment boundary
+
+- Work is on `feature/multi-team-foundation`.
+- Vercel deployment is a preview only.
+- `main` has not been modified, and no production deployment was promoted.
+- No paid Supabase branch or paid resource was created.
+- The existing Supabase project received additive schema changes only. Legacy household data remains unchanged.
+
+## Verification and remaining acceptance step
+
+GitHub Actions passes dependency installation, unit tests, lint, and production build. The preview's app shell, manifest, service worker, and Supabase configuration were fetched successfully.
+
+Before production promotion, test with two real email/password accounts on separate devices: create a team, invite and join, add an expense, verify balances, and complete a two-party settlement. Confirm email delivery and password reset redirects in the actual account environment.
