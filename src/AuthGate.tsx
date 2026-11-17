@@ -98,7 +98,7 @@ export default function AuthGate({children}:Props){
 
  if(!ready)return <main className="shell auth-shell"><section className="panel auth-panel"><p>Checking your secure sign-in…</p></section></main>
  if(session&&linked===null)return <main className="shell auth-shell"><section className="panel auth-panel"><p>Checking your household account…</p></section></main>
- if(session&&linked)return <>{children}</>
+ if(session&&linked&&!recovery)return <>{children}</>
  return <main className="shell auth-shell">
   <header className="topbar"><a className="brand" href="#"><span className="brand-mark">M</span><span><strong>MealMate</strong><small>Private household expenses</small></span></a></header>
   <section className="panel auth-panel">
