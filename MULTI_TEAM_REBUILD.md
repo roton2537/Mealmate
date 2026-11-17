@@ -25,7 +25,7 @@ This is the active development track for MealMate's multi-team shared-expense ap
 
 ## Migration history
 
-The earlier household SQL migrations are retained as historical migration records. They must remain in chronological order for existing Supabase migration-ledger consistency. The final migration `20261117200000_remove_legacy_household_system.sql` removes the legacy household objects, so a fresh replay finishes with the multi-team schema only.
+The earlier household SQL migrations are retained as historical migration records. They must remain in chronological order for existing Supabase migration-ledger consistency. The final migration `20261117162421_remove_legacy_household_system.sql` removes the legacy household objects, so a fresh replay finishes with the multi-team schema only.
 
 ## Deployment boundary
 
