@@ -1,15 +1,16 @@
-import {useMemo,useState,type FormEvent} from 'react'
+import {useEffect,useMemo,useState,type FormEvent} from 'react'
 import {formatSAR,MEMBERS,splitEqually} from './lib/split'
 import {messages,type Language} from './i18n'
 type Expense={id:string;title:string;amount:number;paidBy:string;date:string}
 const STORE='mealmate-preview-expenses-v1'
 function load():Expense[]{try{const raw=localStorage.getItem(STORE);return raw?JSON.parse(raw) as Expense[]:[]}catch{return []}}
 export default function App(){
- const [lang,setLang]=useState<Language>('en'),[expenses,setExpenses]=useState<Expense[]>(load),[title,setTitle]=useState(''),[amount,setAmount]=useState(''),[paidBy,setPaidBy]=useState(MEMBERS[0].id),[date,setDate]=useState(new Date().toISOString().slice(0,10)),[error,setError]=useState('')
+ const [lang,setLang]=useState<Language>('en'),[expenses,setExpenses]=useState<Expense[]>(load),[title,setTitle]=useState(''),[amount,setAmount]=useState(''),[paidBy,setPaidBy]=useState(MEMBERS[0].id),[date,setDate]=useState(''),[error,setError]=useState('')
+ useEffect(()=>{setDate(new Date().toISOString().slice(0,10))},[])
  const t=messages[lang],total=expenses.reduce((s,e)=>s+e.amount,0),share=total/4
  const balances=useMemo(()=>MEMBERS.map((m,index)=>{const paid=expenses.filter(e=>e.paidBy===m.id).reduce((s,e)=>s+e.amount,0);const owed=expenses.reduce((s,e)=>s+splitEqually(e.amount,4)[index],0);return {...m,paid,balance:paid-owed}}),[expenses])
  function add(e:FormEvent<HTMLFormElement>){e.preventDefault();const n=Number(amount);if(!title.trim()){setError(lang==='bn'?'খরচের বিবরণ লিখুন।':'Enter an expense description.');return}if(!Number.isFinite(n)||n<=0||n>10000000){setError(lang==='bn'?'সঠিক পরিমাণ লিখুন।':'Enter a valid amount greater than zero.');return}
- const next=[{id:crypto.randomUUID(),title:title.trim(),amount:Math.round(n*100)/100,paidBy,date},...expenses];setExpenses(next);try{localStorage.setItem(STORE,JSON.stringify(next))}catch{setError('Browser storage is unavailable.');return}setTitle('');setAmount('');setError('')}
+ const expenseDate=date||new Date().toISOString().slice(0,10);const next=[{id:crypto.randomUUID(),title:title.trim(),amount:Math.round(n*100)/100,paidBy,date:expenseDate},...expenses];setExpenses(next);try{localStorage.setItem(STORE,JSON.stringify(next))}catch{setError('Browser storage is unavailable.');return}setTitle('');setAmount('');setError('')}
  return <main className="shell" dir={lang==='bn'?'rtl':'ltr'}>
  <header className="topbar"><a className="brand" href="#top"><span className="brand-mark">M</span><span><strong>{t.app}</strong><small>{t.subtitle}</small></span></a><div className="top-actions"><span className="currency">SAR · ﷼</span><button className="lang-btn" onClick={()=>setLang(lang==='en'?'bn':'en')}>{t.language}</button></div></header>
  <section className="welcome" id="top"><div><p className="eyebrow">SHARED HOUSEHOLD FINANCES</p><h1>{lang==='bn'?'খাবারের খরচ, সবার জন্য পরিষ্কার হিসাব।':'A simpler way to share meal costs.'}</h1><p>{lang==='bn'?'চারজন সদস্যের সমান ভাগে দৈনন্দিন খরচের হিসাব রাখুন।':'Track shared food expenses and split every cost equally between the four members.'}</p></div><div className="welcome-icon">🥘</div></section>
