@@ -26,10 +26,11 @@ begin
     where team_id=v_member.team_id and user_id=auth.uid() and left_at is null;
   if v_actor_role is null then raise exception 'Active team membership required'; end if;
   if v_member.role='owner' then raise exception 'The team owner cannot be changed or deactivated here'; end if;
+  if v_member.left_at is not null then raise exception 'This member is already inactive'; end if;
 
   if p_action='set_role' then
     if v_actor_role <> 'owner' then raise exception 'Only the team owner can appoint admins'; end if;
-    if p_role not in ('admin','member') then raise exception 'Role must be admin or member'; end if;
+    if p_role is null or p_role not in ('admin','member') then raise exception 'Role must be admin or member'; end if;
     update public.mm_team_members set role=p_role where id=p_member_id and left_at is null;
     insert into public.mm_team_audit_log(team_id,actor_user_id,entity_type,entity_id,action,details)
     values(v_member.team_id,auth.uid(),'member',p_member_id,'member_role_changed',jsonb_build_object('role',p_role));
